@@ -1,0 +1,305 @@
+import { useState } from 'react'
+import {
+  Box,
+  VStack,
+  Heading,
+  FormControl,
+  FormLabel,
+  Input,
+  Select,
+  Button,
+  Text,
+  useToast,
+  Card,
+  CardBody,
+  SimpleGrid,
+  Stat,
+  StatLabel,
+  StatNumber,
+  StatHelpText,
+  Progress,
+  List,
+  ListItem,
+  ListIcon,
+  Divider,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
+} from '@chakra-ui/react'
+import { CheckCircleIcon, WarningIcon } from '@chakra-ui/icons'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+
+const RetirementCalculator = () => {
+  const [currentAge, setCurrentAge] = useState('')
+  const [retirementAge, setRetirementAge] = useState('')
+  const [currentSavings, setCurrentSavings] = useState('')
+  const [monthlyContribution, setMonthlyContribution] = useState('')
+  const [expectedReturn, setExpectedReturn] = useState('')
+  const [inflationRate, setInflationRate] = useState('')
+  const [monthlyIncome, setMonthlyIncome] = useState('')
+  const [results, setResults] = useState<any>(null)
+  const toast = useToast()
+
+  const calculateRetirement = () => {
+    const age = parseInt(currentAge)
+    const retireAge = parseInt(retirementAge)
+    const savings = parseFloat(currentSavings)
+    const monthly = parseFloat(monthlyContribution)
+    const returnRate = parseFloat(expectedReturn) / 100
+    const inflation = parseFloat(inflationRate) / 100
+    const income = parseFloat(monthlyIncome)
+
+    // Calculate years until retirement
+    const yearsToRetirement = retireAge - age
+
+    // Calculate future value of current savings
+    const futureValueOfSavings = savings * Math.pow(1 + returnRate, yearsToRetirement)
+
+    // Calculate future value of monthly contributions
+    const monthlyRate = returnRate / 12
+    const months = yearsToRetirement * 12
+    const futureValueOfContributions = monthly * 
+      ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate)
+
+    // Total retirement savings
+    const totalSavings = futureValueOfSavings + futureValueOfContributions
+
+    // Calculate required monthly income in retirement (adjusted for inflation)
+    const inflationAdjustedIncome = income * Math.pow(1 + inflation, yearsToRetirement)
+    const annualIncomeNeeded = inflationAdjustedIncome * 12
+
+    // Calculate required savings for retirement income
+    const yearsInRetirement = 30 // Assuming 30 years of retirement
+    const retirementReturnRate = returnRate - inflation // Real return rate
+    const requiredSavings = annualIncomeNeeded * 
+      ((1 - Math.pow(1 + retirementReturnRate, -yearsInRetirement)) / retirementReturnRate)
+
+    // Calculate savings gap
+    const savingsGap = requiredSavings - totalSavings
+
+    // Generate growth projection data
+    const growthData = []
+    let currentBalance = savings
+    let totalContributions = savings
+
+    for (let year = 1; year <= yearsToRetirement; year++) {
+      currentBalance = currentBalance * (1 + returnRate) + (monthly * 12)
+      totalContributions += monthly * 12
+      growthData.push({
+        year,
+        balance: Math.round(currentBalance),
+        contributions: Math.round(totalContributions),
+        interest: Math.round(currentBalance - totalContributions)
+      })
+    }
+
+    // Generate recommendations based on gap
+    const recommendations = []
+    if (savingsGap > 0) {
+      recommendations.push(
+        `Aumenta tu aportación mensual en $${Math.round(savingsGap / (months * 0.8))} para alcanzar tu meta`,
+        'Considera extender tu edad de jubilación',
+        'Evalúa opciones de inversión con mayor rendimiento',
+        'Revisa tus gastos actuales para aumentar el ahorro'
+      )
+    } else {
+      recommendations.push(
+        '¡Excelente! Estás en camino de alcanzar tu meta de jubilación',
+        'Considera diversificar tus inversiones',
+        'Evalúa opciones de seguro de gastos médicos mayores',
+        'Planea actividades para tu jubilación'
+      )
+    }
+
+    setResults({
+      totalSavings,
+      requiredSavings,
+      savingsGap,
+      monthlyIncomeNeeded: inflationAdjustedIncome,
+      growthData,
+      recommendations
+    })
+  }
+
+  return (
+    <Box>
+      <VStack spacing={8} align="stretch">
+        <Box textAlign="center">
+          <Heading size="xl" mb={4}>
+            Calculadora de Jubilación
+          </Heading>
+          <Text fontSize="lg" color="gray.600">
+            Planifica tu futuro financiero para una jubilación cómoda
+          </Text>
+        </Box>
+
+        <Card>
+          <CardBody>
+            <VStack spacing={6}>
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} width="full">
+                <FormControl>
+                  <FormLabel>Edad actual</FormLabel>
+                  <Input
+                    type="number"
+                    value={currentAge}
+                    onChange={(e) => setCurrentAge(e.target.value)}
+                    placeholder="Ingresa tu edad actual"
+                  />
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel>Edad de jubilación</FormLabel>
+                  <Input
+                    type="number"
+                    value={retirementAge}
+                    onChange={(e) => setRetirementAge(e.target.value)}
+                    placeholder="Ingresa tu edad de jubilación"
+                  />
+                </FormControl>
+              </SimpleGrid>
+
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} width="full">
+                <FormControl>
+                  <FormLabel>Ahorro actual (MXN)</FormLabel>
+                  <Input
+                    type="number"
+                    value={currentSavings}
+                    onChange={(e) => setCurrentSavings(e.target.value)}
+                    placeholder="Ingresa tu ahorro actual"
+                  />
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel>Aportación mensual (MXN)</FormLabel>
+                  <Input
+                    type="number"
+                    value={monthlyContribution}
+                    onChange={(e) => setMonthlyContribution(e.target.value)}
+                    placeholder="Ingresa tu aportación mensual"
+                  />
+                </FormControl>
+              </SimpleGrid>
+
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} width="full">
+                <FormControl>
+                  <FormLabel>Rendimiento anual esperado (%)</FormLabel>
+                  <Input
+                    type="number"
+                    value={expectedReturn}
+                    onChange={(e) => setExpectedReturn(e.target.value)}
+                    placeholder="Ingresa el rendimiento esperado"
+                  />
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel>Tasa de inflación anual (%)</FormLabel>
+                  <Input
+                    type="number"
+                    value={inflationRate}
+                    onChange={(e) => setInflationRate(e.target.value)}
+                    placeholder="Ingresa la tasa de inflación"
+                  />
+                </FormControl>
+              </SimpleGrid>
+
+              <FormControl>
+                <FormLabel>Ingreso mensual deseado en jubilación (MXN)</FormLabel>
+                <Input
+                  type="number"
+                  value={monthlyIncome}
+                  onChange={(e) => setMonthlyIncome(e.target.value)}
+                  placeholder="Ingresa el ingreso mensual deseado"
+                />
+              </FormControl>
+
+              <Button colorScheme="blue" onClick={calculateRetirement} width="full">
+                Calcular Jubilación
+              </Button>
+            </VStack>
+          </CardBody>
+        </Card>
+
+        {results && (
+          <Card>
+            <CardBody>
+              <VStack spacing={6}>
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} width="full">
+                  <Stat>
+                    <StatLabel>Ahorro total proyectado</StatLabel>
+                    <StatNumber>${results.totalSavings.toLocaleString('es-MX')}</StatNumber>
+                    <StatHelpText>Al momento de la jubilación</StatHelpText>
+                  </Stat>
+                  <Stat>
+                    <StatLabel>Ahorro requerido</StatLabel>
+                    <StatNumber>${results.requiredSavings.toLocaleString('es-MX')}</StatNumber>
+                    <StatHelpText>Para mantener tu estilo de vida</StatHelpText>
+                  </Stat>
+                </SimpleGrid>
+
+                {results.savingsGap > 0 ? (
+                  <Alert status="warning">
+                    <AlertIcon />
+                    <Box>
+                      <AlertTitle>¡Atención!</AlertTitle>
+                      <AlertDescription>
+                        Existe un déficit de ${results.savingsGap.toLocaleString('es-MX')} en tu plan de jubilación
+                      </AlertDescription>
+                    </Box>
+                  </Alert>
+                ) : (
+                  <Alert status="success">
+                    <AlertIcon />
+                    <Box>
+                      <AlertTitle>¡Excelente!</AlertTitle>
+                      <AlertDescription>
+                        Tu plan de jubilación está en buen camino
+                      </AlertDescription>
+                    </Box>
+                  </Alert>
+                )}
+
+                <Divider />
+
+                <Box width="full" height="400px">
+                  <Text fontSize="lg" fontWeight="bold" mb={4}>
+                    Proyección de crecimiento
+                  </Text>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={results.growthData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="year" label={{ value: 'Años', position: 'insideBottom', offset: -5 }} />
+                      <YAxis label={{ value: 'MXN', angle: -90, position: 'insideLeft' }} />
+                      <Tooltip formatter={(value) => `$${value.toLocaleString('es-MX')}`} />
+                      <Line type="monotone" dataKey="balance" stroke="#3182CE" name="Balance total" />
+                      <Line type="monotone" dataKey="contributions" stroke="#38A169" name="Aportaciones" />
+                      <Line type="monotone" dataKey="interest" stroke="#E53E3E" name="Intereses" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Box>
+
+                <Divider />
+
+                <Box width="full">
+                  <Text fontSize="lg" fontWeight="bold" mb={4}>
+                    Recomendaciones
+                  </Text>
+                  <List spacing={3}>
+                    {results.recommendations.map((rec: string, index: number) => (
+                      <ListItem key={index} display="flex" alignItems="center">
+                        <ListIcon as={CheckCircleIcon} color={results.savingsGap > 0 ? "yellow.500" : "green.500"} />
+                        {rec}
+                      </ListItem>
+                    ))}
+                  </List>
+                </Box>
+              </VStack>
+            </CardBody>
+          </Card>
+        )}
+      </VStack>
+    </Box>
+  )
+}
+
+export default RetirementCalculator
