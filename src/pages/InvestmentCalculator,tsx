@@ -1,0 +1,192 @@
+import { useState } from 'react'
+import {
+  Box,
+  VStack,
+  Heading,
+  FormControl,
+  FormLabel,
+  Input,
+  Select,
+  Button,
+  Text,
+  useToast,
+  Card,
+  CardBody,
+  SimpleGrid,
+  Stat,
+  StatLabel,
+  StatNumber,
+  StatHelpText,
+} from '@chakra-ui/react'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+
+const InvestmentCalculator = () => {
+  const [amount, setAmount] = useState('')
+  const [term, setTerm] = useState('')
+  const [type, setType] = useState('')
+  const [results, setResults] = useState<any>(null)
+  const toast = useToast()
+
+  const terms = [
+    { value: '7', label: '7 días' },
+    { value: '30', label: '30 días' },
+    { value: '90', label: '90 días' },
+    { value: '180', label: '180 días' },
+    { value: '360', label: '360 días' },
+    { value: '600', label: '600 días' },
+    { value: '720', label: '720 días' },
+    { value: '1080', label: '1080 días' },
+    { value: '1440', label: '1440 días' },
+  ]
+
+  const calculateInvestment = () => {
+    const investmentAmount = parseFloat(amount)
+    const termDays = parseInt(term)
+    const annualRate = type === 'finsus-plus' ? 0.1501 : 0.11 // 15.01% for Finsus+, 11% for Fixed Term
+
+    if (investmentAmount < 100) {
+      toast({
+        title: 'Error',
+        description: 'El monto mínimo de inversión es $100',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      })
+      return
+    }
+
+    const dailyRate = annualRate / 365
+    const finalAmount = investmentAmount * Math.pow(1 + dailyRate, termDays)
+    const interestEarned = finalAmount - investmentAmount
+    const taxRate = 0.20 // 20% ISR
+    const taxAmount = interestEarned * taxRate
+    const netInterest = interestEarned - taxAmount
+    const netAmount = investmentAmount + netInterest
+
+    // Generate monthly data for chart
+    const monthlyData = []
+    const months = Math.ceil(termDays / 30)
+    for (let i = 0; i <= months; i++) {
+      const days = i * 30
+      const amount = investmentAmount * Math.pow(1 + dailyRate, days)
+      monthlyData.push({
+        month: i,
+        amount: Math.round(amount * 100) / 100,
+      })
+    }
+
+    setResults({
+      finalAmount,
+      interestEarned,
+      taxAmount,
+      netInterest,
+      netAmount,
+      monthlyData,
+    })
+  }
+
+  return (
+    <Box>
+      <VStack spacing={8} align="stretch">
+        <Box textAlign="center">
+          <Heading size="xl" mb={4}>
+            Calculadora de Rendimientos
+          </Heading>
+          <Text fontSize="lg" color="gray.600">
+            Calcula el rendimiento de tus inversiones con Finsus
+          </Text>
+        </Box>
+
+        <Card>
+          <CardBody>
+            <VStack spacing={6}>
+              <FormControl>
+                <FormLabel>Monto a invertir (Mínimo $100)</FormLabel>
+                <Input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="Ingresa el monto"
+                />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Plazo</FormLabel>
+                <Select value={term} onChange={(e) => setTerm(e.target.value)} placeholder="Selecciona el plazo">
+                  {terms.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Tipo de inversión</FormLabel>
+                <Select value={type} onChange={(e) => setType(e.target.value)} placeholder="Selecciona el tipo">
+                  <option value="finsus-plus">Finsus+ (15.01% anual)</option>
+                  <option value="fixed-term">Plazo Fijo (11% anual)</option>
+                </Select>
+              </FormControl>
+
+              <Button colorScheme="blue" onClick={calculateInvestment} width="full">
+                Calcular
+              </Button>
+            </VStack>
+          </CardBody>
+        </Card>
+
+        {results && (
+          <Card>
+            <CardBody>
+              <VStack spacing={6}>
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} width="full">
+                  <Stat>
+                    <StatLabel>Monto final</StatLabel>
+                    <StatNumber>${results.finalAmount.toFixed(2)}</StatNumber>
+                    <StatHelpText>Incluye intereses brutos</StatHelpText>
+                  </Stat>
+                  <Stat>
+                    <StatLabel>Intereses ganados</StatLabel>
+                    <StatNumber>${results.interestEarned.toFixed(2)}</StatNumber>
+                    <StatHelpText>Antes de impuestos</StatHelpText>
+                  </Stat>
+                  <Stat>
+                    <StatLabel>Impuestos (ISR)</StatLabel>
+                    <StatNumber>${results.taxAmount.toFixed(2)}</StatNumber>
+                    <StatHelpText>20% sobre intereses</StatHelpText>
+                  </Stat>
+                  <Stat>
+                    <StatLabel>Monto neto</StatLabel>
+                    <StatNumber>${results.netAmount.toFixed(2)}</StatNumber>
+                    <StatHelpText>Después de impuestos</StatHelpText>
+                  </Stat>
+                </SimpleGrid>
+
+                <Box width="full" height="300px">
+                  <ResponsiveContainer>
+                    <LineChart data={results.monthlyData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" label={{ value: 'Meses', position: 'insideBottom', offset: -5 }} />
+                      <YAxis
+                        label={{ value: 'Monto ($)', angle: -90, position: 'insideLeft' }}
+                        tickFormatter={(value) => `$${value}`}
+                      />
+                      <Tooltip
+                        formatter={(value: number) => [`$${value.toFixed(2)}`, 'Monto']}
+                        labelFormatter={(label) => `Mes ${label}`}
+                      />
+                      <Line type="monotone" dataKey="amount" stroke="#3182CE" name="Monto" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Box>
+              </VStack>
+            </CardBody>
+          </Card>
+        )}
+      </VStack>
+    </Box>
+  )
+}
+
+export default InvestmentCalculator
