@@ -1,0 +1,264 @@
+import { useState } from 'react'
+import {
+  Box,
+  VStack,
+  Heading,
+  FormControl,
+  FormLabel,
+  RadioGroup,
+  Radio,
+  Button,
+  Text,
+  useToast,
+  Card,
+  CardBody,
+  SimpleGrid,
+  Stat,
+  StatLabel,
+  StatNumber,
+  StatHelpText,
+  Progress,
+  List,
+  ListItem,
+  ListIcon,
+  Divider,
+} from '@chakra-ui/react'
+import { CheckCircleIcon, WarningIcon } from '@chakra-ui/icons'
+
+const CreditScoreCalculator = () => {
+  const [paymentHistory, setPaymentHistory] = useState('')
+  const [debtLevel, setDebtLevel] = useState('')
+  const [creditHistory, setCreditHistory] = useState('')
+  const [creditTypes, setCreditTypes] = useState('')
+  const [recentInquiries, setRecentInquiries] = useState('')
+  const [results, setResults] = useState<any>(null)
+  const toast = useToast()
+
+  const calculateScore = () => {
+    // Weight factors for Mexican credit score calculation
+    const weights = {
+      paymentHistory: 0.35,
+      debtLevel: 0.30,
+      creditHistory: 0.15,
+      creditTypes: 0.10,
+      recentInquiries: 0.10,
+    }
+
+    // Convert responses to numerical values (1-5 scale)
+    const scores = {
+      paymentHistory: parseInt(paymentHistory),
+      debtLevel: parseInt(debtLevel),
+      creditHistory: parseInt(creditHistory),
+      creditTypes: parseInt(creditTypes),
+      recentInquiries: parseInt(recentInquiries),
+    }
+
+    // Calculate weighted score (300-850 range)
+    const baseScore = 300
+    const maxScore = 850
+    const scoreRange = maxScore - baseScore
+
+    const weightedScore = Object.entries(weights).reduce((total, [key, weight]) => {
+      return total + (scores[key as keyof typeof scores] * weight * scoreRange)
+    }, baseScore)
+
+    // Generate recommendations based on scores
+    const recommendations = []
+    if (scores.paymentHistory < 4) {
+      recommendations.push('Realiza todos tus pagos a tiempo para mejorar tu historial de pagos')
+    }
+    if (scores.debtLevel < 4) {
+      recommendations.push('Reduce tu nivel de deuda actual para mejorar tu score')
+    }
+    if (scores.creditHistory < 3) {
+      recommendations.push('Mantén tus cuentas abiertas por más tiempo para construir historial')
+    }
+    if (scores.creditTypes < 3) {
+      recommendations.push('Diversifica los tipos de crédito que utilizas')
+    }
+    if (scores.recentInquiries < 3) {
+      recommendations.push('Evita solicitar múltiples créditos en un corto período')
+    }
+
+    // Determine score category
+    let category = ''
+    let categoryColor = ''
+    if (weightedScore >= 700) {
+      category = 'Excelente'
+      categoryColor = 'green'
+    } else if (weightedScore >= 600) {
+      category = 'Bueno'
+      categoryColor = 'blue'
+    } else if (weightedScore >= 500) {
+      category = 'Regular'
+      categoryColor = 'yellow'
+    } else {
+      category = 'Necesita mejorar'
+      categoryColor = 'red'
+    }
+
+    setResults({
+      score: Math.round(weightedScore),
+      category,
+      categoryColor,
+      recommendations,
+      factorScores: scores,
+    })
+  }
+
+  return (
+    <Box>
+      <VStack spacing={8} align="stretch">
+        <Box textAlign="center">
+          <Heading size="xl" mb={4}>
+            Calculadora de Score Crediticio
+          </Heading>
+          <Text fontSize="lg" color="gray.600">
+            Evalúa tu score crediticio y recibe recomendaciones de mejora
+          </Text>
+        </Box>
+
+        <Card>
+          <CardBody>
+            <VStack spacing={6}>
+              <FormControl>
+                <FormLabel>Historial de pagos</FormLabel>
+                <RadioGroup value={paymentHistory} onChange={setPaymentHistory}>
+                  <VStack align="start" spacing={2}>
+                    <Radio value="5">Siempre pago a tiempo</Radio>
+                    <Radio value="4">Ocasionalmente retraso 1-2 días</Radio>
+                    <Radio value="3">Algunos retrasos de 3-7 días</Radio>
+                    <Radio value="2">Varios retrasos de más de 7 días</Radio>
+                    <Radio value="1">Frecuentes retrasos o incumplimientos</Radio>
+                  </VStack>
+                </RadioGroup>
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Nivel de deuda</FormLabel>
+                <RadioGroup value={debtLevel} onChange={setDebtLevel}>
+                  <VStack align="start" spacing={2}>
+                    <Radio value="5">Menos del 10% del límite de crédito</Radio>
+                    <Radio value="4">Entre 10% y 30% del límite</Radio>
+                    <Radio value="3">Entre 30% y 50% del límite</Radio>
+                    <Radio value="2">Entre 50% y 80% del límite</Radio>
+                    <Radio value="1">Más del 80% del límite</Radio>
+                  </VStack>
+                </RadioGroup>
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Antigüedad del historial crediticio</FormLabel>
+                <RadioGroup value={creditHistory} onChange={setCreditHistory}>
+                  <VStack align="start" spacing={2}>
+                    <Radio value="5">Más de 7 años</Radio>
+                    <Radio value="4">Entre 5 y 7 años</Radio>
+                    <Radio value="3">Entre 3 y 5 años</Radio>
+                    <Radio value="2">Entre 1 y 3 años</Radio>
+                    <Radio value="1">Menos de 1 año</Radio>
+                  </VStack>
+                </RadioGroup>
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Tipos de crédito utilizados</FormLabel>
+                <RadioGroup value={creditTypes} onChange={setCreditTypes}>
+                  <VStack align="start" spacing={2}>
+                    <Radio value="5">4 o más tipos diferentes</Radio>
+                    <Radio value="4">3 tipos diferentes</Radio>
+                    <Radio value="3">2 tipos diferentes</Radio>
+                    <Radio value="2">1 tipo de crédito</Radio>
+                    <Radio value="1">Sin historial de crédito</Radio>
+                  </VStack>
+                </RadioGroup>
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Consultas recientes</FormLabel>
+                <RadioGroup value={recentInquiries} onChange={setRecentInquiries}>
+                  <VStack align="start" spacing={2}>
+                    <Radio value="5">Ninguna en el último año</Radio>
+                    <Radio value="4">1-2 consultas</Radio>
+                    <Radio value="3">3-4 consultas</Radio>
+                    <Radio value="2">5-6 consultas</Radio>
+                    <Radio value="1">Más de 6 consultas</Radio>
+                  </VStack>
+                </RadioGroup>
+              </FormControl>
+
+              <Button colorScheme="blue" onClick={calculateScore} width="full">
+                Calcular Score
+              </Button>
+            </VStack>
+          </CardBody>
+        </Card>
+
+        {results && (
+          <Card>
+            <CardBody>
+              <VStack spacing={6}>
+                <Box width="full" textAlign="center">
+                  <Text fontSize="2xl" fontWeight="bold" color={`${results.categoryColor}.500`}>
+                    {results.score}
+                  </Text>
+                  <Text fontSize="xl" color="gray.600">
+                    {results.category}
+                  </Text>
+                  <Progress
+                    value={((results.score - 300) / 550) * 100}
+                    colorScheme={results.categoryColor}
+                    size="lg"
+                    mt={4}
+                  />
+                </Box>
+
+                <Divider />
+
+                <Box width="full">
+                  <Text fontSize="lg" fontWeight="bold" mb={4}>
+                    Recomendaciones de mejora
+                  </Text>
+                  <List spacing={3}>
+                    {results.recommendations.map((rec: string, index: number) => (
+                      <ListItem key={index} display="flex" alignItems="center">
+                        <ListIcon as={WarningIcon} color="yellow.500" />
+                        {rec}
+                      </ListItem>
+                    ))}
+                  </List>
+                </Box>
+
+                <Divider />
+
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} width="full">
+                  <Stat>
+                    <StatLabel>Historial de pagos</StatLabel>
+                    <StatNumber>{results.factorScores.paymentHistory}/5</StatNumber>
+                    <StatHelpText>35% del score</StatHelpText>
+                  </Stat>
+                  <Stat>
+                    <StatLabel>Nivel de deuda</StatLabel>
+                    <StatNumber>{results.factorScores.debtLevel}/5</StatNumber>
+                    <StatHelpText>30% del score</StatHelpText>
+                  </Stat>
+                  <Stat>
+                    <StatLabel>Antigüedad</StatLabel>
+                    <StatNumber>{results.factorScores.creditHistory}/5</StatNumber>
+                    <StatHelpText>15% del score</StatHelpText>
+                  </Stat>
+                  <Stat>
+                    <StatLabel>Tipos de crédito</StatLabel>
+                    <StatNumber>{results.factorScores.creditTypes}/5</StatNumber>
+                    <StatHelpText>10% del score</StatHelpText>
+                  </Stat>
+                </SimpleGrid>
+              </VStack>
+            </CardBody>
+          </Card>
+        )}
+      </VStack>
+    </Box>
+  )
+}
+
+export default CreditScoreCalculator
