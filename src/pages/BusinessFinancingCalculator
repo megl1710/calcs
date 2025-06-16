@@ -1,0 +1,92 @@
+import { useState } from 'react'
+import {
+  Box,
+  VStack,
+  Heading,
+  FormControl,
+  FormLabel,
+  Input,
+  Select,
+  Button,
+  Text,
+  useToast,
+  Card,
+  CardBody,
+  SimpleGrid,
+  Stat,
+  StatLabel,
+  StatNumber,
+  StatHelpText,
+  Progress,
+  List,
+  ListItem,
+  ListIcon,
+  Divider,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+} from '@chakra-ui/react'
+import { CheckCircleIcon, WarningIcon } from '@chakra-ui/icons'
+
+const BusinessFinancingCalculator = () => {
+  const [businessType, setBusinessType] = useState('')
+  const [monthlyRevenue, setMonthlyRevenue] = useState('')
+  const [businessAge, setBusinessAge] = useState('')
+  const [creditScore, setCreditScore] = useState('')
+  const [results, setResults] = useState<any>(null)
+  const toast = useToast()
+
+  const calculateFinancing = () => {
+    // Convert inputs to numbers
+    const revenue = parseFloat(monthlyRevenue)
+    const age = parseInt(businessAge)
+    const score = parseInt(creditScore)
+
+    // Calculate maximum credit amount (typically 3-6 months of revenue)
+    const maxCreditAmount = revenue * 6
+
+    // Calculate qualification probability based on factors
+    let probability = 0
+    let factors = []
+
+    // Business type factor
+    const businessTypeFactors: { [key: string]: number } = {
+      'retail': 0.8,
+      'services': 0.9,
+      'manufacturing': 0.7,
+      'technology': 0.95,
+      'restaurant': 0.6,
+    }
+    probability += businessTypeFactors[businessType] * 25
+    factors.push(`Tipo de negocio: ${Math.round(businessTypeFactors[businessType] * 100)}%`)
+
+    // Revenue factor
+    const revenueFactor = Math.min(revenue / 100000, 1)
+    probability += revenueFactor * 25
+    factors.push(`Ingresos mensuales: ${Math.round(revenueFactor * 100)}%`)
+
+    // Business age factor
+    const ageFactor = Math.min(age / 5, 1)
+    probability += ageFactor * 25
+    factors.push(`Antigüedad del negocio: ${Math.round(ageFactor * 100)}%`)
+
+    // Credit score factor
+    const scoreFactor = Math.min((score - 300) / 550, 1)
+    probability += scoreFactor * 25
+    factors.push(`Score crediticio: ${Math.round(scoreFactor * 100)}%`)
+
+    // Calculate interest rate based on probability
+    const baseRate = 0.15 // 15% base rate
+    const rateAdjustment = (1 - probability / 100) * 0.10 // Up to 10% adjustment
+    const finalRate = baseRate + rateAdjustment
+
+    // Generate payment scenarios
+    const scenarios = [12, 24, 36].map(months => {
+      const monthlyPayment = (maxCreditAmount * (finalRate / 12)) / (1 - Math.pow(1 + finalRate / 12, -months))
+      return {
+        term: months,
+        monthlyPayment: monthlyPayment,
+        totalPay
