@@ -1,4 +1,5 @@
 import InvestmentCalculator from './pages/InvestmentCalculator'
+import RetirementCalculator from './pages/RetirementCalculator'
 import BusinessFinancingCalculator from './pages/BusinessFinancingCalculator'
 import CreditScoreCalculator from './pages/CreditScoreCalculator'
 import PersonalCreditCalculator from './pages/PersonalCreditCalculator'
@@ -22,6 +23,7 @@ function App() {
               <Route path="/personal-credit-calculator" element={<PersonalCreditCalculator />} />
               <Route path="/credit-score-calculator" element={<CreditScoreCalculator />} />
               <Route path="/business-financing-calculator" element={<BusinessFinancingCalculator />} />
+              <Route path="/retirement-calculator" element={<RetirementCalculator />} />
             </Routes>
           </Box>
         </Box>
