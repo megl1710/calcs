@@ -1,5 +1,4 @@
 import InvestmentCalculator from './pages/InvestmentCalculator'
-import RetirementCalculator from './pages/RetirementCalculator'
 import BusinessFinancingCalculator from './pages/BusinessFinancingCalculator'
 import CreditScoreCalculator from './pages/CreditScoreCalculator'
 import PersonalCreditCalculator from './pages/PersonalCreditCalculator'
@@ -8,7 +7,6 @@ import { ChakraProvider, Box } from '@chakra-ui/react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Home from './pages/Home'
-
 function App() {
   return (
     <ChakraProvider>
@@ -23,7 +21,6 @@ function App() {
               <Route path="/personal-credit-calculator" element={<PersonalCreditCalculator />} />
               <Route path="/credit-score-calculator" element={<CreditScoreCalculator />} />
               <Route path="/business-financing-calculator" element={<BusinessFinancingCalculator />} />
-              <Route path="/retirement-calculator" element={<RetirementCalculator />} />
             </Routes>
           </Box>
         </Box>
