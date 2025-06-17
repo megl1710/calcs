@@ -1,0 +1,301 @@
+import { useState } from 'react'
+import {
+  Box,
+  VStack,
+  Heading,
+  FormControl,
+  FormLabel,
+  Input,
+  Select,
+  Button,
+  Text,
+  useToast,
+  Card,
+  CardBody,
+  SimpleGrid,
+  Stat,
+  StatLabel,
+  StatNumber,
+  StatHelpText,
+  Progress,
+  List,
+  ListItem,
+  ListIcon,
+  Divider,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  InputGroup,
+  InputLeftAddon,
+} from '@chakra-ui/react'
+import { CheckCircleIcon, WarningIcon } from '@chakra-ui/icons'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+
+const MortgageCalculator = () => {
+  const [propertyValue, setPropertyValue] = useState('')
+  const [downPayment, setDownPayment] = useState('')
+  const [interestRate, setInterestRate] = useState('')
+  const [loanTerm, setLoanTerm] = useState('')
+  const [results, setResults] = useState<any>(null)
+  const toast = useToast()
+
+  const calculateMortgage = () => {
+    const value = parseFloat(propertyValue)
+    const down = parseFloat(downPayment)
+    const rate = parseFloat(interestRate) / 100
+    const term = parseInt(loanTerm)
+
+    // Calculate loan amount
+    const loanAmount = value - down
+
+    // Calculate monthly interest rate
+    const monthlyRate = rate / 12
+
+    // Calculate number of payments
+    const numberOfPayments = term * 12
+
+    // Calculate monthly payment using the mortgage payment formula
+    const monthlyPayment = loanAmount * 
+      (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) / 
+      (Math.pow(1 + monthlyRate, numberOfPayments) - 1)
+
+    // Calculate total payment and interest
+    const totalPayment = monthlyPayment * numberOfPayments
+    const totalInterest = totalPayment - loanAmount
+
+    // Generate amortization schedule
+    const schedule = []
+    let remainingBalance = loanAmount
+    let totalPrincipal = 0
+    let totalInterestPaid = 0
+
+    for (let year = 1; year <= term; year++) {
+      let yearPrincipal = 0
+      let yearInterest = 0
+
+      for (let month = 1; month <= 12; month++) {
+        const interestPayment = remainingBalance * monthlyRate
+        const principalPayment = monthlyPayment - interestPayment
+
+        remainingBalance -= principalPayment
+        yearPrincipal += principalPayment
+        yearInterest += interestPayment
+      }
+
+      totalPrincipal += yearPrincipal
+      totalInterestPaid += yearInterest
+
+      schedule.push({
+        year,
+        principal: yearPrincipal,
+        interest: yearInterest,
+        remainingBalance
+      })
+    }
+
+    // Calculate down payment percentage
+    const downPaymentPercentage = (down / value) * 100
+
+    // Generate recommendations
+    const recommendations = []
+    if (downPaymentPercentage < 20) {
+      recommendations.push(
+        'Considera aumentar el enganche para evitar el seguro de hipoteca',
+        'Evalúa opciones de ahorro para aumentar el pago inicial'
+      )
+    }
+    if (rate > 0.1) {
+      recommendations.push(
+        'Compara tasas de interés con diferentes instituciones financieras',
+        'Considera mejorar tu score crediticio para obtener mejores tasas'
+      )
+    }
+    if (term > 20) {
+      recommendations.push(
+        'Evalúa la posibilidad de reducir el plazo para pagar menos intereses',
+        'Considera hacer pagos adicionales para reducir el plazo total'
+      )
+    }
+
+    setResults({
+      loanAmount,
+      monthlyPayment,
+      totalPayment,
+      totalInterest,
+      schedule,
+      downPaymentPercentage,
+      recommendations
+    })
+  }
+
+  return (
+    <Box>
+      <VStack spacing={8} align="stretch">
+        <Box textAlign="center">
+          <Heading size="xl" mb={4}>
+            Calculadora de Hipoteca
+          </Heading>
+          <Text fontSize="lg" color="gray.600">
+            Calcula tus pagos hipotecarios y planifica tu compra de vivienda
+          </Text>
+        </Box>
+
+        <Card>
+          <CardBody>
+            <VStack spacing={6}>
+              <FormControl>
+                <FormLabel>Valor de la propiedad (MXN)</FormLabel>
+                <InputGroup>
+                  <InputLeftAddon>$</InputLeftAddon>
+                  <Input
+                    type="number"
+                    value={propertyValue}
+                    onChange={(e) => setPropertyValue(e.target.value)}
+                    placeholder="Ingresa el valor de la propiedad"
+                  />
+                </InputGroup>
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Enganche (MXN)</FormLabel>
+                <InputGroup>
+                  <InputLeftAddon>$</InputLeftAddon>
+                  <Input
+                    type="number"
+                    value={downPayment}
+                    onChange={(e) => setDownPayment(e.target.value)}
+                    placeholder="Ingresa el monto del enganche"
+                  />
+                </InputGroup>
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Tasa de interés anual (%)</FormLabel>
+                <InputGroup>
+                  <Input
+                    type="number"
+                    value={interestRate}
+                    onChange={(e) => setInterestRate(e.target.value)}
+                    placeholder="Ingresa la tasa de interés"
+                  />
+                  <InputLeftAddon>%</InputLeftAddon>
+                </InputGroup>
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Plazo del préstamo (años)</FormLabel>
+                <Select
+                  value={loanTerm}
+                  onChange={(e) => setLoanTerm(e.target.value)}
+                  placeholder="Selecciona el plazo"
+                >
+                  <option value="10">10 años</option>
+                  <option value="15">15 años</option>
+                  <option value="20">20 años</option>
+                  <option value="25">25 años</option>
+                  <option value="30">30 años</option>
+                </Select>
+              </FormControl>
+
+              <Button colorScheme="blue" onClick={calculateMortgage} width="full">
+                Calcular Hipoteca
+              </Button>
+            </VStack>
+          </CardBody>
+        </Card>
+
+        {results && (
+          <Card>
+            <CardBody>
+              <VStack spacing={6}>
+                <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} width="full">
+                  <Stat>
+                    <StatLabel>Pago mensual</StatLabel>
+                    <StatNumber>${results.monthlyPayment.toLocaleString('es-MX', { maximumFractionDigits: 2 })}</StatNumber>
+                    <StatHelpText>Pago mensual estimado</StatHelpText>
+                  </Stat>
+                  <Stat>
+                    <StatLabel>Monto del préstamo</StatLabel>
+                    <StatNumber>${results.loanAmount.toLocaleString('es-MX')}</StatNumber>
+                    <StatHelpText>Después del enganche</StatHelpText>
+                  </Stat>
+                  <Stat>
+                    <StatLabel>Interés total</StatLabel>
+                    <StatNumber>${results.totalInterest.toLocaleString('es-MX')}</StatNumber>
+                    <StatHelpText>Durante todo el plazo</StatHelpText>
+                  </Stat>
+                </SimpleGrid>
+
+                <Divider />
+
+                <Box width="full">
+                  <Text fontSize="lg" fontWeight="bold" mb={4}>
+                    Tabla de amortización anual
+                  </Text>
+                  <Table variant="simple">
+                    <Thead>
+                      <Tr>
+                        <Th>Año</Th>
+                        <Th isNumeric>Capital</Th>
+                        <Th isNumeric>Interés</Th>
+                        <Th isNumeric>Saldo restante</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {results.schedule.map((year: any) => (
+                        <Tr key={year.year}>
+                          <Td>{year.year}</Td>
+                          <Td isNumeric>${year.principal.toLocaleString('es-MX', { maximumFractionDigits: 2 })}</Td>
+                          <Td isNumeric>${year.interest.toLocaleString('es-MX', { maximumFractionDigits: 2 })}</Td>
+                          <Td isNumeric>${year.remainingBalance.toLocaleString('es-MX', { maximumFractionDigits: 2 })}</Td>
+                        </Tr>
+                      ))}
+                    </Tbody>
+                  </Table>
+                </Box>
+
+                <Divider />
+
+                <Box width="full">
+                  <Text fontSize="lg" fontWeight="bold" mb={4}>
+                    Recomendaciones
+                  </Text>
+                  <List spacing={3}>
+                    {results.recommendations.map((rec: string, index: number) => (
+                      <ListItem key={index} display="flex" alignItems="center">
+                        <ListIcon as={CheckCircleIcon} color="blue.500" />
+                        {rec}
+                      </ListItem>
+                    ))}
+                  </List>
+                </Box>
+
+                <Box width="full" height="400px">
+                  <Text fontSize="lg" fontWeight="bold" mb={4}>
+                    Proyección de pagos
+                  </Text>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={results.schedule}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="year" label={{ value: 'Años', position: 'insideBottom', offset: -5 }} />
+                      <YAxis label={{ value: 'MXN', angle: -90, position: 'insideLeft' }} />
+                      <Tooltip formatter={(value) => `$${value.toLocaleString('es-MX')}`} />
+                      <Line type="monotone" dataKey="principal" stroke="#3182CE" name="Capital" />
+                      <Line type="monotone" dataKey="interest" stroke="#E53E3E" name="Interés" />
+                      <Line type="monotone" dataKey="remainingBalance" stroke="#38A169" name="Saldo restante" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Box>
+              </VStack>
+            </CardBody>
+          </Card>
+        )}
+      </VStack>
+    </Box>
+  )
+}
+
+export default MortgageCalculator
